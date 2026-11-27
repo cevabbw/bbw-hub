@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BBW Dashboard Hub</title>
+<style>
+  /* ── Reset & base ─────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #0a1626;
+    color: #e7eef7;
+    min-height: 100vh;
+  }
+
+  /* ── CEVA × BBW Header (from project template) ───────────────── */
+  .site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: linear-gradient(115deg, #0a1626 0%, #0f2447 55%, #1b3d7a 100%);
+    padding: 24px 28px 26px;
+    position: relative;
+  }
+  .site-header::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #e2231a 0 50%, #6f9be0 50% 100%);
+  }
+  .brand { display: flex; align-items: center; gap: 16px; }
+  .partner { display: flex; align-items: center; gap: 14px; }
+  .partner .x { width: 1px; height: 38px; background: #2a4a73; }
+  .logo-ceva { height: 38px; width: auto; display: block; }
+  .logo-bbw  { height: 52px; width: auto; display: block; }
+  .brand .divider { width: 1px; align-self: stretch; background: #2a4a73; margin: 0 4px; }
+  .brand h1 { font-size: 21px; font-weight: 800; color: #fff; }
+  .brand .sub { color: #93a8c4; font-size: 13px; margin-top: 4px; }
+
+  /* sign-out button in the header */
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .user-chip {
+    font-size: 13px;
+    color: #93a8c4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+  .btn-signout {
+    background: transparent;
+    border: 1px solid #2a4a73;
+    color: #93a8c4;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .btn-signout:hover { background: #2a4a73; color: #e7eef7; }
+
+  @media (max-width: 600px) {
+    .site-header { padding: 18px 16px; }
+    .logo-ceva { height: 30px; }
+    .logo-bbw  { height: 42px; }
+  }
+
+  /* ── Gingham background tile ──────────────────────────────────── */
+  /* Pink-on-white gingham, overlaid dark for the dark theme */
+  .gingham-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-color: #0a1626;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 29px,
+        rgba(111,155,224,.07) 29px,
+        rgba(111,155,224,.07) 30px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 29px,
+        rgba(111,155,224,.07) 29px,
+        rgba(111,155,224,.07) 30px
+      );
+  }
+
+  /* ── Screens ──────────────────────────────────────────────────── */
+  .screen { position: relative; z-index: 1; }
+
+  /* Sign-in screen */
+  #sign-in-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 90px);
+    padding: 40px 20px;
+  }
+  .sign-in-card {
+    background: linear-gradient(145deg, #0f2447, #1b3d7a22);
+    border: 1px solid #2a4a73;
+    border-radius: 16px;
+    padding: 40px 36px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,.45);
+  }
+  .sign-in-card h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .sign-in-card p  { color: #93a8c4; font-size: 14px; margin-bottom: 28px; }
+
+  .input-group { margin-bottom: 16px; text-align: left; }
+  .input-group label { display: block; font-size: 12px; color: #93a8c4; margin-bottom: 6px; letter-spacing: .05em; text-transform: uppercase; }
+  .input-group input {
+    width: 100%;
+    padding: 11px 14px;
+    background: #0a1626;
+    border: 1px solid #2a4a73;
+    border-radius: 8px;
+    color: #e7eef7;
+    font-size: 15px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .input-group input:focus { border-color: #6f9be0; }
+
+  .btn-primary {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(90deg, #e2231a, #c41e16);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity .15s;
+  }
+  .btn-primary:hover { opacity: .88; }
+
+  .sign-in-error {
+    color: #ff6b6b;
+    font-size: 13px;
+    margin-top: 14px;
+    min-height: 20px;
+    display: none;
+  }
+  .sign-in-error.visible { display: block; }
+
+  /* Loading spinner */
+  #loading-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 90px);
+  }
+  .spinner {
+    width: 44px; height: 44px;
+    border: 4px solid #2a4a73;
+    border-top-color: #6f9be0;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Hub screen */
+  #hub-screen {
+    padding: 36px 28px 60px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .hub-intro {
+    margin-bottom: 32px;
+  }
+  .hub-intro h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #e7eef7;
+    margin-bottom: 6px;
+  }
+  .hub-intro p { color: #93a8c4; font-size: 14px; }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+  }
+
+  /* ── Dashboard card ───────────────────────────────────────────── */
+  .dash-card {
+    background: linear-gradient(145deg, #0f2447, #0d1e3a);
+    border: 1px solid #2a4a73;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,.35);
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    transition: transform .18s, box-shadow .18s, border-color .18s;
+  }
+  .dash-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 36px rgba(0,0,0,.5);
+    border-color: #6f9be0;
+  }
+
+  .card-accent { height: 5px; }
+  .accent-red  { background: linear-gradient(90deg, #e2231a, #ff5a54); }
+  .accent-blue { background: linear-gradient(90deg, #1b3d7a, #6f9be0); }
+  .accent-pink { background: linear-gradient(90deg, #c94080, #f06fa0); }
+
+  .card-body { padding: 22px 22px 18px; flex: 1; }
+  .card-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .card-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #e7eef7;
+    margin-bottom: 7px;
+  }
+  .card-desc {
+    font-size: 13px;
+    color: #93a8c4;
+    line-height: 1.55;
+  }
+
+  .card-footer {
+    padding: 12px 22px;
+    border-top: 1px solid #1e3560;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #6f9be0;
+  }
+  .card-footer .badge {
+    background: #1e3560;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: #93a8c4;
+  }
+  .card-arrow { font-size: 16px; }
+
+  /* Forgot password link & reset sub-view */
+  .forgot-link {
+    display: block;
+    margin-top: 14px;
+    font-size: 13px;
+    color: #6f9be0;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    text-decoration: underline;
+  }
+  .forgot-link:hover { color: #93b8e8; }
+
+  #reset-view { display: none; }
+  #reset-view.visible { display: block; }
+
+  .reset-msg {
+    font-size: 13px;
+    margin-top: 12px;
+    min-height: 20px;
+  }
+  .reset-msg.success { color: #5dd88a; }
+  .reset-msg.error   { color: #ff6b6b; }
+
+  .back-link {
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 13px;
+    color: #93a8c4;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    text-decoration: underline;
+  }
+  .back-link:hover { color: #e7eef7; }
+
+  /* No-access message */
+  .no-access {
+    text-align: center;
+    padding: 60px 20px;
+    color: #93a8c4;
+  }
+  .no-access h3 { font-size: 18px; color: #e7eef7; margin-bottom: 10px; }
+  .no-access p  { font-size: 14px; }
+
+  @media (max-width: 600px) {
+    #hub-screen { padding: 24px 16px 40px; }
+    .cards-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="gingham-bg" aria-hidden="true"></div>
+
+<!-- ── Header ─────────────────────────────────────────────────────── -->
+<header class="site-header">
+  <div class="brand">
+    <div class="partner">
+      <!-- CEVA logo (inline PNG) -->
+      <img class="logo-ceva" alt="CEVA Logistics"
+        src="data:image/png;base64,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">
+      <span class="x" aria-hidden="true"></span>
+      <!-- BBW logo (inline PNG) -->
+      <img class="logo-bbw" alt="Bath &amp; Body Works"
+        src="data:image/png;base64,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">
+    </div>
+    <div class="divider" aria-hidden="true"></div>
+    <div>
+      <h1>Dashboard Hub</h1>
+      <div class="sub">CEVA × BBW McDonough — Operations</div>
+    </div>
+  </div>
+  <div class="header-right" id="header-right" style="display:none">
+    <span class="user-chip" id="user-email"></span>
+    <button class="btn-signout" id="btn-signout">Sign out</button>
+  </div>
+</header>
+
+<!-- ── Loading ─────────────────────────────────────────────────────── -->
+<div id="loading-screen" class="screen">
+  <div class="spinner"></div>
+</div>
+
+<!-- ── Sign-in ──────────────────────────────────────────────────────── -->
+<div id="sign-in-screen" class="screen" style="display:none">
+  <div class="sign-in-card">
+    <h2>Welcome Back</h2>
+    <p>Sign in with your authorized CEVA email address.</p>
+    <div class="input-group">
+      <label for="email-input">Email</label>
+      <input type="email" id="email-input" placeholder="you@cevalogistics.com" autocomplete="email">
+    </div>
+    <div class="input-group">
+      <label for="password-input">Password</label>
+      <input type="password" id="password-input" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" id="btn-signin">Sign In</button>
+    <div class="sign-in-error" id="sign-in-error"></div>
+    <button class="forgot-link" id="forgot-link">Forgot password?</button>
+
+    <!-- Password reset sub-view (hidden until "Forgot password?" is clicked) -->
+    <div id="reset-view">
+      <hr style="border-color:#2a4a73;margin:20px 0">
+      <p style="font-size:14px;color:#93a8c4;margin-bottom:14px;">
+        Enter your email and we'll send you a link to reset your password.
+      </p>
+      <div class="input-group">
+        <label for="reset-email">Email</label>
+        <input type="email" id="reset-email" placeholder="you@cevalogistics.com" autocomplete="email">
+      </div>
+      <button class="btn-primary" id="btn-send-reset">Send Reset Link</button>
+      <div class="reset-msg" id="reset-msg"></div>
+      <button class="back-link" id="back-to-signin">← Back to sign in</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Hub ──────────────────────────────────────────────────────────── -->
+<div id="hub-screen" class="screen" style="display:none">
+  <div id="hub-intro" class="hub-intro">
+    <h2>Operations Dashboards</h2>
+    <p>Select a dashboard below. You only see the ones you have access to.</p>
+  </div>
+  <div class="cards-grid" id="cards-grid"></div>
+</div>
+
+
+<script type="module">
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIGURATION — replace these values with your actual Firebase project config
+// ─────────────────────────────────────────────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAEapIrGhOcpKuxCv-oIndQ3UD3q8PiYs0",
+  authDomain:        "bbw-hub.firebaseapp.com",
+  databaseURL:       "https://bbw-hub-default-rtdb.firebaseio.com",
+  projectId:         "bbw-hub",
+  storageBucket:     "bbw-hub.firebasestorage.app",
+  messagingSenderId: "447861225810",
+  appId:             "1:447861225810:web:aafa4fc47e34721db3228b"
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DASHBOARD REGISTRY
+// Add new dashboards here. "key" matches a field in the user's Firebase record.
+// ─────────────────────────────────────────────────────────────────────────────
+const DASHBOARDS = [
+  {
+    key:     "daily_output",
+    title:   "Daily Output",
+    desc:    "LTFC reaches, outbound cartons, and shift-by-shift scorecard data. Updated each shift by supervisors.",
+    icon:    "📦",
+    accent:  "accent-red",
+    badge:   "Live",
+    url:     "https://cevabbw.github.io/mcdonough/"
+  },
+  {
+    key:     "picker_productivity",
+    title:   "LTFC Picker Productivity",
+    desc:    "Reaches and units picked by hour, associate leaderboard (Active-Batch & Active-Discrete), and shift totals.",
+    icon:    "⚡",
+    accent:  "accent-blue",
+    badge:   "Live · 15-min refresh",
+    url:     "https://cevabbw.github.io/bbw-picker-dashboard/"
+  }
+  // Add more dashboards here as they go live:
+  // { key: "another_dash", title: "...", desc: "...", icon: "🗂️", accent: "accent-pink", badge: "...", url: "..." }
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Firebase imports (loaded from CDN — no install needed)
+// ─────────────────────────────────────────────────────────────────────────────
+import { initializeApp }                        from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword,
+         signOut, onAuthStateChanged,
+         sendPasswordResetEmail }               from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, get }                from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bootstrap
+// ─────────────────────────────────────────────────────────────────────────────
+const app  = initializeApp(FIREBASE_CONFIG);
+const auth = getAuth(app);
+const db   = getDatabase(app);
+
+// UI refs
+const screens = {
+  loading: document.getElementById("loading-screen"),
+  signIn:  document.getElementById("sign-in-screen"),
+  hub:     document.getElementById("hub-screen")
+};
+
+function show(which) {
+  Object.entries(screens).forEach(([k, el]) => {
+    el.style.display = k === which ? "" : "none";
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auth state listener — this runs every time the page loads or auth changes
+// ─────────────────────────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    document.getElementById("header-right").style.display = "none";
+    show("signIn");
+    return;
+  }
+
+  // User is signed in — load their access record from Firebase
+  document.getElementById("user-email").textContent = user.email;
+  document.getElementById("header-right").style.display = "";
+  show("loading");
+
+  try {
+    // We store access control at: users/<uid>/access/<dashboard_key> = true/false
+    const snap = await get(ref(db, `users/${user.uid}/access`));
+    const access = snap.exists() ? snap.val() : {};
+    renderHub(access);
+  } catch (err) {
+    console.error("Failed to load access record:", err);
+    renderHub({});   // show no cards rather than crashing
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Render the hub cards based on what this user can see
+// ─────────────────────────────────────────────────────────────────────────────
+function renderHub(access) {
+  const grid = document.getElementById("cards-grid");
+  grid.innerHTML = "";
+
+  const visible = DASHBOARDS.filter(d => access[d.key] === true);
+
+  if (visible.length === 0) {
+    grid.innerHTML = `
+      <div class="no-access" style="grid-column:1/-1">
+        <h3>No dashboards yet</h3>
+        <p>You don't have access to any dashboards. Contact Roy to get added.</p>
+      </div>`;
+    show("hub");
+    return;
+  }
+
+  visible.forEach(d => {
+    const card = document.createElement("a");
+    card.className = "dash-card";
+    card.href      = d.url;
+    card.target    = "_blank";
+    card.rel       = "noopener noreferrer";
+    card.innerHTML = `
+      <div class="card-accent ${d.accent}"></div>
+      <div class="card-body">
+        <span class="card-icon">${d.icon}</span>
+        <div class="card-title">${d.title}</div>
+        <div class="card-desc">${d.desc}</div>
+      </div>
+      <div class="card-footer">
+        <span class="badge">${d.badge}</span>
+        <span class="card-arrow">→</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+
+  show("hub");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sign-in form
+// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById("btn-signin").addEventListener("click", async () => {
+  const email    = document.getElementById("email-input").value.trim();
+  const password = document.getElementById("password-input").value;
+  const errEl    = document.getElementById("sign-in-error");
+  errEl.classList.remove("visible");
+
+  if (!email || !password) {
+    errEl.textContent = "Please enter your email and password.";
+    errEl.classList.add("visible");
+    return;
+  }
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    // onAuthStateChanged fires automatically — no need to do anything here
+  } catch (err) {
+    const msgs = {
+      "auth/user-not-found":   "No account found with that email.",
+      "auth/wrong-password":   "Incorrect password.",
+      "auth/invalid-email":    "Please enter a valid email address.",
+      "auth/too-many-requests":"Too many attempts. Try again later.",
+      "auth/invalid-credential": "Email or password is incorrect."
+    };
+    errEl.textContent = msgs[err.code] || "Sign-in failed. Please try again.";
+    errEl.classList.add("visible");
+  }
+});
+
+// Allow Enter key in password field to submit
+document.getElementById("password-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("btn-signin").click();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Forgot password — toggle reset view
+// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById("forgot-link").addEventListener("click", () => {
+  document.getElementById("reset-view").classList.add("visible");
+  document.getElementById("forgot-link").style.display = "none";
+  document.getElementById("sign-in-error").classList.remove("visible");
+  // Pre-fill reset email if user already typed one
+  const typedEmail = document.getElementById("email-input").value.trim();
+  if (typedEmail) document.getElementById("reset-email").value = typedEmail;
+});
+
+document.getElementById("back-to-signin").addEventListener("click", () => {
+  document.getElementById("reset-view").classList.remove("visible");
+  document.getElementById("forgot-link").style.display = "";
+  document.getElementById("reset-msg").textContent = "";
+  document.getElementById("reset-msg").className = "reset-msg";
+});
+
+document.getElementById("btn-send-reset").addEventListener("click", async () => {
+  const email  = document.getElementById("reset-email").value.trim();
+  const msgEl  = document.getElementById("reset-msg");
+  msgEl.textContent = "";
+  msgEl.className   = "reset-msg";
+
+  if (!email) {
+    msgEl.textContent = "Please enter your email address.";
+    msgEl.classList.add("error");
+    return;
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    msgEl.textContent = "✓ Reset link sent! Check your inbox (and spam folder).";
+    msgEl.classList.add("success");
+    document.getElementById("btn-send-reset").disabled = true;
+  } catch (err) {
+    const msgs = {
+      "auth/user-not-found": "No account found with that email.",
+      "auth/invalid-email":  "Please enter a valid email address.",
+      "auth/too-many-requests": "Too many attempts. Try again later."
+    };
+    msgEl.textContent = msgs[err.code] || "Something went wrong. Try again.";
+    msgEl.classList.add("error");
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sign-out
+// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById("btn-signout").addEventListener("click", () => {
+  signOut(auth);
+});
+</script>
+</body>
+</html>
